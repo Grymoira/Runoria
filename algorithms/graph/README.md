@@ -188,9 +188,9 @@ Floyd–Warshall 的典型检测方法是检查对角线：存在 `D[v][v] < 0` 
 
 ## 8. 与早期学习笔记逐项对照
 
-早期手写版本使用：
+早期手写版本的关键部分如下（**片段，依赖外部变量 `graph`，不能直接单独运行**）：
 
-```python
+```text
 n = len(graph)
 dist = [row[:] for row in graph]
 next_node = [[None] * n for _ in range(n)]
