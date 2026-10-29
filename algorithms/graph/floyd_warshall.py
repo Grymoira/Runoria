@@ -3,8 +3,8 @@
 
 Use a square adjacency matrix: edge weights are integers or finite floats;
 math.inf indicates the absence of an edge. Negative edges are allowed, but a
-negative cycle raises ValueError, since finite shortest distances then do not
-exist for all reachable vertex pairs.
+negative cycle raises ValueError, since some vertex pairs then lack a
+finite shortest distance. Floating-point path sums that overflow are rejected.
 """
 
 import math
@@ -33,6 +33,9 @@ def floyd_warshall(
     Raises:
         ValueError: For invalid dimensions, weights, or a negative cycle.
         TypeError: For unsupported edge-weight types.
+        OverflowError: If adding finite float weights produces an infinity.
+            This avoids treating a reachable but unrepresentably large
+            path as unreachable (or a negative overflow as a valid distance).
     """
     if not isinstance(graph, (list, tuple)):
         raise TypeError("graph must be a square list or tuple of rows")
@@ -76,6 +79,12 @@ def floyd_warshall(
                 if right == math.inf:
                     continue
                 through_k = left + right
+                # Python integers are exact, but finite floating-point edges
+                # may overflow to +inf or -inf during path accumulation.
+                # +inf could falsely mean "unreachable"; -inf could falsely
+                # imply a negative cycle. Fail explicitly instead.
+                if isinstance(through_k, float) and not math.isfinite(through_k):
+                    raise OverflowError("floating-point path weight overflow")
                 if through_k < distances[i][j]:
                     distances[i][j] = through_k
                     next_hop[i][j] = next_hop[i][k]
