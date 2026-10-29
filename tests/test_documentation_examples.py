@@ -27,5 +27,5 @@ def examples() -> list:
 
 @pytest.mark.parametrize("filename,index,code", examples())
 def test_python_example_runs_alone(filename: str, index: int, code: str) -> None:
-    namespace = {"__name__": "__runoria_example__"}
+    namespace = {"__name__": "__main__"}
     exec(compile(code, f"{filename}:example:{index}", "exec"), namespace)
