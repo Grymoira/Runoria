@@ -33,6 +33,10 @@ jobs:
         run: python -m algorithms.matrix.strassen
       - name: Verify Strassen benchmark command line
         run: python -m benchmarks.strassen_vs_naive --size 8 --cutoff 2 --number 1 --repeat 2
+      - name: Verify Floyd-Warshall command line example
+        run: python -m algorithms.graph.floyd_warshall
+      - name: Verify Floyd-Warshall reference benchmark command line
+        run: python -m benchmarks.floyd_warshall_vs_bellman_ford --vertices 6 --density 0.5 --number 1 --repeat 2
 
   numba-smoke:
     runs-on: ubuntu-latest
