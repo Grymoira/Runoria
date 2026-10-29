@@ -25,3 +25,17 @@ jobs:
         run: python -m compileall -q algorithms benchmarks tests
       - name: Run tests
         run: python -m pytest -q
+
+  numba-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install optional benchmark dependencies
+        run: python -m pip install numpy numba
+      - name: Verify Numba benchmark execution and output correctness
+        run: python benchmarks/bubble_sort_numba.py --size 200 --repeat 3
