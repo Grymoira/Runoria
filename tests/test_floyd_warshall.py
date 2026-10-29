@@ -58,7 +58,6 @@ def test_empty_and_one_vertex() -> None:
     assert floyd_warshall([]) == ([], [])
     assert floyd_warshall([[math.inf]]) == ([[0]], [[0]])
     assert floyd_warshall([[5]]) == ([[0]], [[0]])
-    assert floyd_warshall(((-1,),)) is not None if False else True
     for entry in (0, 1, math.inf):
         d, nxt = floyd_warshall([[entry]])
         assert d == [[0]] and reconstruct_path(nxt, 0, 0) == [0]
