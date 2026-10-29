@@ -170,6 +170,7 @@ Floyd–Warshall 的典型检测方法是检查对角线：存在 `D[v][v] < 0` 
 | `NaN`、`-inf` | 抛出 `ValueError` |
 | Python 超大整数边权 | 保留整数运算，不强制转换成浮点数 |
 | 浮点数边权 | 允许，但数值误差可能影响严格比较和负权环检测 |
+| 有限浮点边权累加溢出到 `+inf` 或 `-inf` | 抛出 `OverflowError`，避免将可达路径误判为不可达或产生无效距离 |
 
 算法不会修改传入的邻接矩阵。这里的距离矩阵和下一跳矩阵都是**新分配的数据结构**。
 
@@ -181,6 +182,64 @@ Floyd–Warshall 的典型检测方法是检查对角线：存在 `D[v][v] < 0` 
 - 一次路线查询会沿着路径逐步跳转：最坏约为 `O(V)`；函数还会验证下一跳矩阵形状，实际调用包含 `O(V²)` 的输入检查。
 
 适合顶点数中等、图较稠密、需要任意两点最短路的教学或实际场景。仅需单源路径时优先根据负权情况考虑 Dijkstra 或 Bellman–Ford；大规模稀疏图通常需要不同方案。
+
+**不存在通用的 `V ≤ 500` 适用界限**：这是某些题目或实现环境下的经验值，并非算法定理。`V` 增大后，纯 Python 的三层循环尤其可能成为瓶颈；请根据具体机器、语言和数据密度基准测试。
+
+
+## 7. 与早期学习笔记逐项对照
+
+早期手写版本使用：
+
+```python
+n = len(graph)
+dist = [row[:] for row in graph]
+next_node = [[None] * n for _ in range(n)]
+
+for k in range(n):
+    for i in range(n):
+        for j in range(n):
+            if dist[i][k] + dist[k][j] < dist[i][j]:
+                dist[i][j] = dist[i][k] + dist[k][j]
+                next_node[i][j] = next_node[i][k]
+```
+
+**核心转移是对的**：按照 `k → i → j` 遍历、在路径变短时同步更新下一跳，是标准 Floyd–Warshall 写法。它在输入维度正确、初始距离对角线为 0、没有负权环等前提下可以求得正确距离；但完整 API 还要处理下面几种情况。
+
+| 情形 | 早期笔记 | 当前 Runoria API |
+| --- | --- | --- |
+| `start == end` | 默认 `next_node[i][i] = None`，于是返回 `[]` | 返回 `[start]`，表达长度为 0 的空路径 |
+| `i→j` 不可达 | 返回 `[]` | 返回 `None`，避免混淆“空路径”和“不可达” |
+| 负权环 | 未检测；距离与下一跳可能不再有效 | 检查 `dist[v][v] < 0`，抛出 `ValueError` |
+| 路径恢复的 `while` | 没有环检测，损坏的下一跳表可能无限循环 | 限定步数并检查每一跳 |
+| `inf` 运算 | 直接相加，在正常的 `math.inf` 语义下通常仍可算 | 跳过不可达项，节省无意义的运算 |
+| 输入校验 | 默认矩阵符合预期 | 校验矩阵形状、类型及不允许的非有限数值 |
+| 浮点溢出 | 没有处理 | 有限边权相加溢出至无穷大时明确抛出 `OverflowError` |
+
+### 为什么负权环值得特别注意？
+
+早期代码在如下 3 顶点负权环中可能生成**循环的下一跳**，例如从顶点 `0` 到 `2` 的恢复过程会反复在 `0,1` 之间跳转，无法到达 `2`：
+
+```python
+from math import inf
+from algorithms.graph.floyd_warshall import floyd_warshall
+
+cyclic = [[0, 2, -2], [-3, 0, -2], [-1, inf, 0]]
+try:
+    floyd_warshall(cyclic)
+except ValueError as error:
+    assert "negative-weight cycle" in str(error)
+else:
+    raise AssertionError("Expected a negative-cycle error")
+```
+
+本项目的 API 合约采用 `reconstruct_path(next_hop, start, end)`，**而非旧笔记中的 `reconstruct_path_floyd` 名称**。调用方应按新接口处理不可达值 `None`，而不是继续将 `[]` 与不可达混同。
+
+### 浮点数精度与溢出
+
+不同的路径加法顺序可能产生舍入误差：即使没有真实负权环，极接近 0 的路径权重也可能被算为微小负值。当前实现不加入固定 `epsilon` 容差，因为绝对/相对容差的选择依赖数据单位与应用场景。**需要严格数学正确性时优先使用整数权重**，或为特定任务设计明确的误差策略。
+
+极端大/小浮点边权虽然本身有限，累积路径时可能产生 `inf` 或 `-inf`。当前实现选择主动抛出 `OverflowError`，避免把本来可达的路径错误标记为不存在；它不尝试任意精度浮点数运算。
+
 
 ## 8. 运行、测试和基准实验
 
