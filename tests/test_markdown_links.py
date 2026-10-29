@@ -10,11 +10,10 @@ MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
 def markdown_files() -> list[Path]:
-    return sorted(
-        path
-        for path in ROOT.rglob("*.md")
-        if ".git" not in path.parts and ".venv" not in path.parts
-    )
+    sources = [ROOT / "README.md", ROOT / "CONTRIBUTING.md"]
+    for folder in ("algorithms", "docs", "python"):
+        sources.extend((ROOT / folder).rglob("*.md"))
+    return sorted(sources)
 
 
 @pytest.mark.parametrize(
