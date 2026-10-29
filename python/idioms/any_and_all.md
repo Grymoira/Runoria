@@ -18,13 +18,28 @@ assert all_positive is False
 `any()` 遇到第一个真值就停止；`all()` 遇到第一个假值就停止。因此优先使用生成器表达式：
 
 ```python
-any(x < 0 for x in numbers)
+numbers = [1, -3, 5]
+assert any(x < 0 for x in numbers)
 ```
 
 而不是提前计算全部比较结果的列表：
 
 ```python
-any([x < 0 for x in numbers])
+numbers = [1, -3, 5]
+assert any([x < 0 for x in numbers])
+```
+
+短路效果可以用代码验证：
+
+```python
+visited = []
+
+def is_negative(value: int) -> bool:
+    visited.append(value)
+    return value < 0
+
+assert any(is_negative(x) for x in [1, -3, 5])
+assert visited == [1, -3]  # 第三个元素没有被访问
 ```
 
 ## 非常重要：空输入
@@ -39,9 +54,18 @@ assert all([]) is True
 在验证权限时，还要根据业务规则确认输入不能为空。对于列表等容器：
 
 ```python
-permissions = []
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Permission:
+    is_active: bool
+
+permissions: list[Permission] = []
 allowed = bool(permissions) and all(p.is_active for p in permissions)
 assert allowed is False
+
+permissions = [Permission(True), Permission(False)]
+assert (bool(permissions) and all(p.is_active for p in permissions)) is False
 ```
 
 注意：上面的非空检查只适用于这里的容器类型。对一个迭代器调用 `bool(iterator)` 通常不能检测它是否还有元素；需要根据实际数据来源设计验证逻辑。
