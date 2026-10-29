@@ -42,6 +42,11 @@ def test_homepage_contains_substantive_algorithm_explanations() -> None:
     assert "## 算法（Algorithms）" in README
     assert "### 冒泡排序（Bubble Sort）" in README
     assert "### 卡拉楚巴算法（Karatsuba Multiplication）" in README
+    assert "### 堆排序（Heap Sort）" in README
+    assert "### 二分搜索（Binary Search）" in README
+    assert "### Trie 前缀树（Prefix Tree）" in README
+    assert "### 动态规划（DP）与 0/1 背包" in README
+    assert "### Dijkstra 最短路径算法" in README
     assert "T(n)=3T(n/2)" in README
     assert "最好时间复杂度" in README
     assert "## Python 惯用写法与语言特性" in README
