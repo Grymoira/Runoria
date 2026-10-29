@@ -480,6 +480,164 @@ else:
 
 相关链接：[详细动态规划笔记](algorithms/graph/README.md) · [完整源码](algorithms/graph/floyd_warshall.py) · [正确性测试](tests/test_floyd_warshall.py) · [与 Bellman–Ford 的基准实验](benchmarks/floyd_warshall_vs_bellman_ford.py)。
 
+### 堆排序（Heap Sort）
+
+**问题：如何在有限的额外内存内进行升序排序，而且保证最坏时间不会退化到平方级？**
+
+堆排序先把输入数组改造成**最大堆（Max Heap）**：父节点的元素始终不小于左右孩子，因此最大值位于数组开头。完全二叉树可以直接以数组表示，节点 `i` 的孩子索引分别为 `2i+1`、`2i+2`，无需额外创建树节点。
+
+操作分为两阶段：先从最后一个非叶子节点开始往前执行下沉（`sift_down`），**自底向上建堆的总成本为 `O(n)`**；然后不断将堆顶最大值换到未排序区末尾，对缩短后的堆恢复性质。
+
+以 `[4,10,3,5,1]` 为例，建堆后可以得到 `[10,5,3,4,1]`，把 `10` 放到最右端，恢复前四个元素的堆后可得 `[5,4,3,1,10]`，重复最终得到 `[1,3,4,5,10]`。
+
+```python
+from algorithms.sorting.heap_sort import heap_sort
+
+numbers = [4, 10, 3, 5, 1]
+assert heap_sort(numbers) is numbers   # 原地修改
+assert numbers == [1, 3, 4, 5, 10]
+```
+
+最好、平均、最坏时间均为 **`O(n log n)`**，迭代下沉的额外空间为 **`O(1)`**。它**不稳定**，具有相同排序键的元素相对位置可能改变；与稳定但通常 `O(n²)` 的冒泡排序形成对比。普通 Python 代码仍然优先用 `sorted()` 或 `list.sort()`。
+
+相关：[堆排序源码](algorithms/sorting/heap_sort.py) · [完整专题](algorithms/sorting/heap_sort.md) · [正确性测试](tests/test_heap_sort.py)。
+
+---
+
+### 二分搜索（Binary Search）
+
+**问题：在一个已按升序排列的序列中快速定位目标，或者找到它的插入位置。** “二进制搜索”和“二分搜尋”在此属于同一个算法专题。
+
+使用**左闭右开区间** `[left, right)`。每轮取 `mid=(left+right)//2`：
+
+1. 若 `values[mid] < target`，则 `mid` 及更左位置都不是第一个不小于目标的元素，令 `left=mid+1`。
+2. 否则令 `right=mid`，保留中点作为可能答案。
+3. `left==right` 时，得到 `lower_bound`：第一个**大于或等于**目标的索引，可能等于 `len(values)`。
+
+对该位置再检查是否真的等于目标即可执行精确搜索。这与随便找到一个匹配值就返回不同：**有重复值时，本实现返回第一次出现的索引**。
+
+```python
+from algorithms.search.binary_search import binary_search, lower_bound
+
+values = [1, 2, 2, 2, 7]
+assert binary_search(values, 2) == 1
+assert binary_search(values, 5) == -1
+assert lower_bound(values, 5) == 4
+assert lower_bound(values, 9) == 5
+```
+
+由于每轮将候选范围大约减半，时间复杂度 **`O(log n)`**，额外空间 **`O(1)`**。**必须预先排序**：若在函数内逐项检查有序性，需要 `O(n)`，会破坏这一时间承诺。标准库 `bisect.bisect_left` 是实际项目的优先选择。
+
+相关：[源码](algorithms/search/binary_search.py) · [区间不变量详解](algorithms/search/README.md) · [与 bisect 的随机对照测试](tests/test_binary_search.py)。
+
+---
+
+### Trie 前缀树（Prefix Tree）
+
+**问题：快速查询一个单词是否存在，以及是否有任何单词以给定字符串开头。**
+
+Trie 将具有共同前缀的字符串合并存储。例如 `cat`、`car` 共用 `c→a` 两层节点，到第三层才分成 `t` 与 `r`。每个节点另有一个**完整单词结束标志（terminal）**：`ca` 是前缀，却不一定是词典中独立的单词。
+
+```text
+(root)
+  └─ c
+     └─ a
+        ├─ t *  cat
+        └─ r *  car
+* 表示完整单词结束
+```
+
+```python
+from algorithms.strings.trie import Trie
+
+trie = Trie()
+assert trie.insert("cat")
+assert trie.insert("car")
+assert trie.starts_with("ca")
+assert not trie.contains("ca")
+assert trie.delete("cat")
+assert not trie.contains("cat") and trie.contains("car")
+```
+
+插入、完整单词查询、前缀查询、删除的平均复杂度都是 **`O(L)`**（`L` 是字符串长度，假设字典平均常数查找）；空间与所有不同字符节点数量成正比。删除时必须**保留其他单词仍使用的共享节点**。
+
+当前实现支持空字符串和 Unicode，区分大小写，不自动进行 Unicode 归一化。大型词库可能需要压缩 Trie 等更节约内存的数据结构。
+
+相关：[源码](algorithms/strings/trie.py) · [完整专题](algorithms/strings/README.md) · [随机增删测试](tests/test_trie.py)。
+
+---
+
+### 动态规划（DP）与 0/1 背包
+
+**动态规划（Dynamic Programming）是一类算法设计方法，而非单个具体算法。** 一般步骤是：定义**状态**、寻找**转移方程**、确定**初始条件**、按正确顺序计算，必要时**恢复最优方案**。它适合有最优子结构、重叠子问题的任务。
+
+本仓库用 **0/1 背包**示范：每个物品有重量和价值，每件物品**最多选一次**，在总重量不超过容量 `C` 时使总价值最大。
+
+令 `dp[i][c]` 表示“只考虑前 `i` 件物品，容量限制为 `c` 的最大价值”。如果第 `i` 件物品重量 `w_i` 不超过 `c`，可选取它或跳过它：
+
+$
+dp[i][c]=
+\begin{cases}
+dp[i-1][c], & w_i>c,\\
+\max(dp[i-1][c],\, dp[i-1][c-w_i]+v_i), & w_i\le c.
+\end{cases}
+$
+
+初始 `dp[0][c]=0`。特别注意从**上一行 `i−1`**取值，这使每件物品不会被无限重复选取。
+
+例如重量 `[2,3,4]`、价值 `[3,4,5]`，背包容量 5。选索引 0 和 1，重量 `2+3=5`、价值 `3+4=7`，优于只取索引 2（价值 5）。
+
+```python
+from algorithms.dynamic_programming.knapsack_01 import knapsack_01
+
+best, indices = knapsack_01([2, 3, 4], [3, 4, 5], capacity=5)
+assert best == 7
+assert indices == [0, 1]
+```
+
+程序会返回**最大价值和实际选中的原始索引**。时间及额外空间均为 **`O(nC)`**，称为**伪多项式复杂度**：容量数值过大时二维 DP 表仍然不实用。支持零重量、负价值（可跳过）的物品，并不会修改输入。
+
+相关：[源码](algorithms/dynamic_programming/knapsack_01.py) · [完整状态推导](algorithms/dynamic_programming/README.md) · [穷举核对测试](tests/test_knapsack_01.py)。
+
+---
+
+### Dijkstra 最短路径算法
+
+**问题：从带权图中的一个起点出发，求到所有其他节点的最短距离和实际路径。**
+
+Dijkstra 的核心是**贪心（Greedy）+ 松弛（Relaxation）**。用最小堆保存暂定最短距离，优先弹出距离最小的节点 `u`，尝试沿出边 `u→v` 更新：
+
+$
+\text{if }d[u]+w(u,v)<d[v],
+\quad d[v]\leftarrow d[u]+w(u,v).
+$
+
+更新时记录前驱 `predecessor[v]=u`，以便重建路径。**全部边权必须非负**，这是贪心正确性的关键；允许**零权边**，不能混同于“没有边”。
+
+示例边为 `0→1(4)`、`0→2(1)`、`2→1(2)`、`1→3(1)`、`2→3(5)`。从 0 到 3，走 `0→2→1→3` 权重为 `1+2+1=4`，优于 `0→2→3` 的 6。
+
+```python
+from algorithms.graph.dijkstra import dijkstra, reconstruct_dijkstra_path
+
+graph = [
+    [(1, 4), (2, 1)],
+    [(3, 1)],
+    [(1, 2), (3, 5)],
+    [],
+]
+distances, previous = dijkstra(graph, 0)
+assert distances[3] == 4
+assert reconstruct_dijkstra_path(previous, 0, 3) == [0, 2, 1, 3]
+```
+
+本实现使用**邻接表 + `heapq` 小根堆**，典型时间上界 **`O((V+E)log(V+E))`**，并使用额外的距离数组、前驱数组与堆；不可达节点距离为 `math.inf`，路线返回 `None`。
+
+与仓库已有的 **Floyd–Warshall** 对比：Dijkstra 解决**单源最短路**、不接受负权边；Floyd–Warshall 解决**所有顶点对最短路**，允许负权边但不允许负权环。随机图的 Dijkstra 测试会以 Floyd–Warshall 为独立参照进行验证。
+
+相关：[源码](algorithms/graph/dijkstra.py) · [详细图论笔记](algorithms/graph/dijkstra.md) · [与 Floyd–Warshall 交叉验证](tests/test_dijkstra.py)。
+
+---
+
 ## Python 惯用写法与语言特性
 
 除了算法，Runoria 还整理了六组经常出现、值得深入理解的 Python 写法。下面直接给出含义、可运行示例与常见误区；每篇的详细笔记可通过标题链接打开。
@@ -595,6 +753,11 @@ python algorithms/sorting/bubble_sort.py
 python -m algorithms.arithmetic.karatsuba
 python -m algorithms.matrix.strassen
 python -m algorithms.graph.floyd_warshall
+python -m algorithms.sorting.heap_sort
+python -m algorithms.search.binary_search
+python -m algorithms.strings.trie
+python -m algorithms.dynamic_programming.knapsack_01
+python -m algorithms.graph.dijkstra
 
 # 安装测试依赖，并执行所有基础测试
 python -m pip install -r requirements-dev.txt
@@ -614,7 +777,7 @@ python -m pip install numpy numba
 python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 ```
 
-**自动化测试包括：** [冒泡排序](tests/test_bubble_sort.py)、[Karatsuba 乘法](tests/test_karatsuba.py)、[Karatsuba 基准接口](tests/test_karatsuba_benchmark.py)、[Strassen 矩阵乘法](tests/test_strassen.py)、[Strassen 基准接口](tests/test_strassen_benchmark.py)、[Floyd–Warshall 最短路与路径重建](tests/test_floyd_warshall.py)、[Floyd–Warshall 基准接口](tests/test_floyd_warshall_benchmark.py)、[Markdown Python 示例](tests/test_documentation_examples.py)、[首页知识覆盖检查](tests/test_readme_coverage.py) 和 [内部链接](tests/test_markdown_links.py)，以及可选的 [Numba 实验测试](tests/test_numba_benchmark.py)。GitHub Actions 在 Python 3.10 / 3.12 / 3.13 下检查基础实现。
+**自动化测试包括：** [冒泡排序](tests/test_bubble_sort.py)、[Karatsuba 乘法](tests/test_karatsuba.py)、[Karatsuba 基准接口](tests/test_karatsuba_benchmark.py)、[Strassen 矩阵乘法](tests/test_strassen.py)、[Strassen 基准接口](tests/test_strassen_benchmark.py)、[Floyd–Warshall 最短路与路径重建](tests/test_floyd_warshall.py)、[Floyd–Warshall 基准接口](tests/test_floyd_warshall_benchmark.py)、[堆排序](tests/test_heap_sort.py)、[二分搜索](tests/test_binary_search.py)、[Trie](tests/test_trie.py)、[动态规划 / 0/1 背包](tests/test_knapsack_01.py)、[Dijkstra](tests/test_dijkstra.py)、[Markdown Python 示例](tests/test_documentation_examples.py)、[首页知识覆盖检查](tests/test_readme_coverage.py) 和 [内部链接](tests/test_markdown_links.py)，以及可选的 [Numba 实验测试](tests/test_numba_benchmark.py)。GitHub Actions 在 Python 3.10 / 3.12 / 3.13 下检查基础实现。
 
 ### 后续新增算法必须怎样记录？
 
@@ -631,8 +794,11 @@ Runoria/
 ├── algorithms/
 │   ├── arithmetic/         # Karatsuba 等整数算法与原理
 │   ├── matrix/             # Strassen 等矩阵运算
-│   ├── graph/              # Floyd–Warshall 等图论算法
-│   └── sorting/            # 冒泡排序等排序算法
+│   ├── graph/              # Floyd–Warshall、Dijkstra 等图论算法
+│   ├── sorting/            # 冒泡排序、堆排序
+│   ├── search/             # 二分搜索与查找
+│   ├── strings/            # Trie 前缀树
+│   └── dynamic_programming/ # 0/1 背包等动态规划
 ├── python/
 │   └── idioms/             # Python 惯用写法与语言细节
 ├── benchmarks/             # 独立性能实验
