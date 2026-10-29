@@ -186,7 +186,7 @@ Floyd–Warshall 的典型检测方法是检查对角线：存在 `D[v][v] < 0` 
 **不存在通用的 `V ≤ 500` 适用界限**：这是某些题目或实现环境下的经验值，并非算法定理。`V` 增大后，纯 Python 的三层循环尤其可能成为瓶颈；请根据具体机器、语言和数据密度基准测试。
 
 
-## 7. 与早期学习笔记逐项对照
+## 8. 与早期学习笔记逐项对照
 
 早期手写版本使用：
 
@@ -241,7 +241,7 @@ else:
 极端大/小浮点边权虽然本身有限，累积路径时可能产生 `inf` 或 `-inf`。当前实现选择主动抛出 `OverflowError`，避免把本来可达的路径错误标记为不存在；它不尝试任意精度浮点数运算。
 
 
-## 8. 运行、测试和基准实验
+## 9. 运行、测试和基准实验
 
 ```bash
 python -m algorithms.graph.floyd_warshall
@@ -253,7 +253,7 @@ python -m benchmarks.floyd_warshall_vs_bellman_ford --vertices 16 --density 0.6 
 
 测试还通过固定随机种子生成没有负权环、却可能有负权边的图，并与独立 Bellman–Ford 结果交叉比较，同时验证重建路径的每一步确实对应原图边权。
 
-## 9. 参考资料
+## 10. 参考资料
 
 - [cp-algorithms — Floyd–Warshall](https://cp-algorithms.com/graph/all-pair-shortest-path-floyd-warshall.html)：动态规划、路径恢复与负权环。
 - [Formal Proof Archive — Floyd–Warshall Algorithm](https://www.isa-afp.org/entries/Floyd_Warshall.html)：形式化验证的正确性说明。
