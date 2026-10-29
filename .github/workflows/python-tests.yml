@@ -25,6 +25,10 @@ jobs:
         run: python -m compileall -q algorithms benchmarks tests
       - name: Run tests
         run: python -m pytest -q
+      - name: Verify Karatsuba command line example
+        run: python -m algorithms.arithmetic.karatsuba
+      - name: Verify Karatsuba benchmark command line
+        run: python -m benchmarks.karatsuba_vs_builtin --bits 256 --number 2 --repeat 2
 
   numba-smoke:
     runs-on: ubuntu-latest
