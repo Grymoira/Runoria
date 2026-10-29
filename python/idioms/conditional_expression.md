@@ -2,7 +2,7 @@
 
 Python 的条件表达式语法：
 
-```python
+```text
 value_if_true if condition else value_if_false
 ```
 
@@ -40,6 +40,25 @@ assert processed == [0, 0, 5]
 不建议堆叠多层 `... if ... else ... if ... else ...`：条件复杂时请使用普通 `if/elif/else` 或拆分成清晰的函数。
 
 注意：条件表达式会根据条件只求值被选中的那个分支，不能简单理解为先计算两个候选值再选择。
+
+## 求值顺序
+
+条件表达式只求值被选中的分支，未选中的分支不会被计算。
+
+```python
+calls = []
+
+def selected():
+    calls.append("yes")
+    return 1
+
+def skipped():
+    calls.append("no")
+    return 0
+
+result = selected() if True else skipped()
+assert result == 1 and calls == ["yes"]
+```
 
 ## 来源
 
