@@ -19,7 +19,7 @@ python -m compileall -q algorithms benchmarks tests
 python -m pytest -q
 ```
 
-CI 只验证标准库算法和基础测试。Numba 是可选实验依赖，不在基础 CI 中安装或运行。
+CI 包含 Python 3.10 / 3.12 / 3.13 的标准库算法测试，以及 Python 3.12 的可选 Numba 实验冒烟测试。后者只验证实验能够运行且排序结果正确，不以性能数值作为 CI 通过标准；实验所需的 NumPy 和 Numba 不作为普通学习的必需依赖。
 
 ## 命名和提交约定
 
