@@ -31,6 +31,17 @@ assert middle == []
 
 如果只有一个元素，以上两个固定位置无法同时分配，会抛出 `ValueError`。
 
+固定位置需要足够多的元素。只有一个元素时，下列解包会抛出 `ValueError`：
+
+```python
+try:
+    first, *middle, last = [1]
+except ValueError:
+    pass
+else:
+    raise AssertionError("Expected ValueError")
+```
+
 ## 3. 忽略不关心的字段
 
 ```python
