@@ -11,6 +11,7 @@ Runoria 是一个以 Python 为起点的个人学习知识库，用于记录算�
 | 分类 | 内容 | 入口 |
 | --- | --- | --- |
 | Algorithms · 算法 | 冒泡排序、复杂度、边界情况 | [Bubble sort](algorithms/sorting/README.md) |
+| Algorithms · 整数算术 | 卡拉楚巴算法（Karatsuba）、分治乘法、渐近复杂度 | [Karatsuba multiplication](algorithms/arithmetic/README.md) |
 | Python idioms · 惯用写法 | [推导式](python/idioms/comprehensions.md)、[序列解包](python/idioms/unpacking.md)、[链式比较](python/idioms/chained_comparisons.md) | [python/idioms](python/idioms/) |
 | Python idioms · 惯用写法 | [enumerate / zip](python/idioms/enumerate_and_zip.md)、[any / all](python/idioms/any_and_all.md)、[条件表达式](python/idioms/conditional_expression.md) | [python/idioms](python/idioms/) |
 | Benchmarks · 性能实验 | [普通 Python 与 Numba 的冒泡排序对比](benchmarks/bubble_sort_numba.py) | [benchmarks](benchmarks/) |
@@ -21,7 +22,8 @@ Runoria 是一个以 Python 为起点的个人学习知识库，用于记录算�
 ```text
 Runoria/
 ├── algorithms/
-│   └── sorting/            # 算法实现及原理说明
+│   ├── sorting/            # 排序算法及原理说明
+│   └── arithmetic/         # 整数算术与分治算法
 ├── python/
 │   └── idioms/             # 语言特性与惯用写法笔记
 ├── benchmarks/             # 独立的性能实验（可选依赖）
@@ -40,6 +42,7 @@ Runoria/
 ```bash
 # 在仓库根目录执行
 python algorithms/sorting/bubble_sort.py
+python -m algorithms.arithmetic.karatsuba
 
 # 安装开发测试依赖并运行测试
 python -m pip install -r requirements-dev.txt
@@ -54,6 +57,14 @@ python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 ```
 
 性能结果依赖 Python、NumPy、Numba 版本与运行环境；示例仅用于学习测量方法，不代表普遍性能结论。
+
+Karatsuba 的可选性能对比（仅依赖标准库）：
+
+```bash
+python -m benchmarks.karatsuba_vs_builtin --bits 1024 --number 20 --repeat 5
+```
+
+这项实验不假定纯 Python 的 Karatsuba 一定快于原生大整数乘法。
 
 ## 阅读约定
 
