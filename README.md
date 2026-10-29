@@ -13,6 +13,7 @@ Runoria 是一个以 Python 为起点的计算机科学个人知识库，记录�
 | --- | --- | --- |
 | 冒泡排序（Bubble Sort） | [原理、过程、稳定性及复杂度](#冒泡排序bubble-sort) | [算法实现](algorithms/sorting/bubble_sort.py) · [深入笔记](algorithms/sorting/README.md) |
 | 卡拉楚巴算法（Karatsuba） | [三次乘法、分治推导与大整数](#卡拉楚巴算法karatsuba-multiplication) | [算法实现](algorithms/arithmetic/karatsuba.py) · [深入笔记](algorithms/arithmetic/README.md) |
+| 弗洛伊德–沃舍尔（Floyd–Warshall） | [动态规划、全源最短路、负权环和路径恢复](#弗洛伊德沃舍尔算法floydwarshall-algorithm) | [算法实现](algorithms/graph/floyd_warshall.py) · [深入笔记](algorithms/graph/README.md) |
 | Python 惯用写法 | [推导式、解包、比较、条件、any/all、enumerate/zip](#python-惯用写法与语言特性) | [笔记目录](python/idioms/) |
 | 性能实验 | [测量方法与误区](#性能实验) | [冒泡排序 / Numba](benchmarks/bubble_sort_numba.py) · [Karatsuba / 内置乘法](benchmarks/karatsuba_vs_builtin.py) |
 | 正确性与维护 | [测试、贡献与学习模板](#测试与知识维护) | [测试目录](tests/) · [贡献规范](CONTRIBUTING.md) |
@@ -191,6 +192,144 @@ $$
 
 相关文件：[完整实现](algorithms/arithmetic/karatsuba.py) · [深入推导与边界说明](algorithms/arithmetic/README.md) · [正确性测试](tests/test_karatsuba.py) · [基准实验](benchmarks/karatsuba_vs_builtin.py)。
 
+### 弗洛伊德–沃舍尔算法（Floyd–Warshall Algorithm）
+
+**解决什么问题？** 给定带权图，求出**任意两个顶点之间的最短距离**，而非仅从某一个起点出发的最短路。该问题称为 *All-Pairs Shortest Paths（APSP，全源最短路径）*。
+
+Floyd–Warshall 适合学习图论中的**动态规划**：它允许出现**负权边**，但如果图中存在负权环，就无法对受该环影响的路径定义有限最短值，本仓库会明确报错。
+
+#### 1. 邻接矩阵与状态
+
+设图有 `V` 个顶点，用 `dist[i][j]` 表示 `i` 到 `j` 的当前最短距离。初始为邻接矩阵：
+
+- `dist[i][i] = 0`：顶点到自身的空路径长度为 0。
+- 有直接边 `i→j`：填入边权（**边权 0 也是合法的边**）。
+- 没有直接边：填入 `math.inf`，代表目前不可达。
+
+核心思路是：**依次允许每一个顶点 `k` 充当路径中转点**。对于 `i→j`，更短的路线只有两种可能：不经过 `k`，或者先从 `i` 到 `k` 再从 `k` 到 `j`。
+
+#### 2. 动态规划公式
+
+最重要的状态转移是：
+
+$
+\boxed{dist[i][j] = \min\left(dist[i][j],\;dist[i][k]+dist[k][j]\right)}
+$
+
+其中 `k` 是当前允许使用的中间顶点，必须作为**最外层循环**；`i` 和 `j` 分别表示起点、终点。
+
+```text
+for k in vertices:
+    for i in vertices:
+        for j in vertices:
+            if i -> k and k -> j are reachable:
+                dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
+```
+
+这个过程逐步扩大“允许经过的中转顶点集合”，最终覆盖所有可能的中转顶点。实现会在计算前检查不可达的 `math.inf`，避免把它当作真实边参与加法。
+
+#### 3. 逐步算例：负权边也可以使用
+
+有向图包含以下边：
+
+| 边 | 权重 |
+| --- | --- |
+| `0→1` | `3` |
+| `0→2` | `10` |
+| `1→2` | `-2` |
+| `1→3` | `10` |
+| `2→3` | `2` |
+
+最初，`0→2` 的直接距离是 `10`。若允许顶点 `1` 作为中转，就有：
+
+$
+dist[0][2] = \min(10,\;3+(-2)) = 1
+$
+
+接着允许顶点 `2` 作为中转，从 `0` 到 `3` 的最短路变为：
+
+$
+dist[0][3] = 1 + 2 = 3.
+$
+
+最终矩阵（`∞` 表示不可达）：
+
+$
+\begin{bmatrix}
+0 & 3 & 1 & 3\\
+\infty & 0 & -2 & 0\\
+\infty & \infty & 0 & 2\\
+\infty & \infty & \infty & 0
+\end{bmatrix}
+$
+
+实际最短路线为 **0 → 1 → 2 → 3**，总权重为 `3 + (-2) + 2 = 3`。
+
+#### 4. Python 示例：同时还原最短路径
+
+本仓库不仅计算最短距离，还维护下一跳矩阵 `next_hop`。当经过 `k` 找到更短路线时，会更新“从 `i` 出发应该先走向哪个节点”；之后使用 `reconstruct_path()` 恢复实际经过的顶点。
+
+```python
+from math import inf
+from algorithms.graph.floyd_warshall import floyd_warshall, reconstruct_path
+
+graph = [
+    [0, 3, 10, inf],
+    [inf, 0, -2, 10],
+    [inf, inf, 0, 2],
+    [inf, inf, inf, 0],
+]
+
+distances, routes = floyd_warshall(graph)
+assert distances[0][3] == 3
+assert reconstruct_path(routes, 0, 3) == [0, 1, 2, 3]
+assert distances[3][0] == inf
+assert reconstruct_path(routes, 3, 0) is None
+```
+
+两个返回值都是新矩阵，不会修改原始输入。不可达路线返回 `None`，起点等于终点返回 `[start]`。
+
+#### 5. 负权环检测与重要限制
+
+**负权边不等于负权环**：上面的 `1→2` 权重为 `-2` 是安全的，因为不存在能反复降低总成本的负权闭环。
+
+若出现 `0→1→2→0`，权重分别为 `1、-3、1`，循环总权重为 `-1`；无限重复就可以把相关路径成本无限降低，因此不存在有限的最短距离。
+
+当某顶点的 `dist[v][v] < 0` 时，说明图中有负权环。本仓库会在检测到**任何一个连通分量中的负权环**时抛出 `ValueError`，而不是返回可能误导人的完整最短路矩阵。
+
+```python
+from math import inf
+from algorithms.graph.floyd_warshall import floyd_warshall
+
+try:
+    floyd_warshall([
+        [0, 1, inf],
+        [inf, 0, -3],
+        [1, inf, 0],
+    ])
+except ValueError as exc:
+    assert "negative-weight cycle" in str(exc)
+else:
+    raise AssertionError("A negative cycle must be rejected")
+```
+
+函数要求方形邻接矩阵、整数或浮点数边权；`NaN` 和 `-inf` 会被拒绝。对于大整数，使用 Python 原生整数，避免不必要的浮点精度损失。对于浮点数，累积误差可能影响严格的距离比较。
+
+#### 6. 复杂度、适用场景与实验
+
+| 性质 | 结论 | 理由 |
+| --- | --- | --- |
+| 时间复杂度 | **`O(V³)`** | 三层顶点循环 |
+| 额外空间复杂度 | **`O(V²)`** | 保存距离矩阵与下一跳矩阵 |
+| 能否处理负权边 | **可以** | 不依赖 Dijkstra 的非负权假设 |
+| 能否处理负权环 | **拒绝** | 环上路径可被无限次降低 |
+| 是否修改输入 | **不会** | 输入矩阵先复制 |
+| 路径重建 | **支持** | `next_hop` 记录第一跳 |
+
+适合规模中等、需要**所有顶点对**路径的图。对于单源最短路或非常稀疏的大图，应根据图的性质考虑 Dijkstra、Bellman–Ford 或 Johnson 算法等替代方案。
+
+相关链接：[详细动态规划笔记](algorithms/graph/README.md) · [完整源码](algorithms/graph/floyd_warshall.py) · [正确性测试](tests/test_floyd_warshall.py) · [与 Bellman–Ford 的基准实验](benchmarks/floyd_warshall_vs_bellman_ford.py)。
+
 ## Python 惯用写法与语言特性
 
 除了算法，Runoria 还整理了六组经常出现、值得深入理解的 Python 写法。下面直接给出含义、可运行示例与常见误区；每篇的详细笔记可通过标题链接打开。
@@ -291,6 +430,7 @@ Python 3.10+ 可使用 `zip(..., strict=True)` 检查长度不一致；确实需
 | --- | --- | --- | --- |
 | [冒泡排序与 Numba](benchmarks/bubble_sort_numba.py) | 对比普通 Python 与 JIT 编译版本 | NumPy、Numba | 两边的容器类型不同：`list` vs `ndarray`；JIT 预热后再计时 |
 | [Karatsuba 与内置乘法](benchmarks/karatsuba_vs_builtin.py) | 对比纯 Python 分治乘法和内置 `*` | 仅标准库 | 固定随机输入、多轮计时、报告每次乘法时间中位数 |
+| [Floyd–Warshall 与重复 Bellman–Ford](benchmarks/floyd_warshall_vs_bellman_ford.py) | 对比两种纯 Python 全源最短路 | 仅标准库 | 随机图可含负权边，但构造时保证无负权环 |
 
 关键原则：**正确性优先于性能**；多轮重复测量；避免把数据生成、JIT 编译、复制输入或结果验证的时间混进算法本身的耗时（除非实验明确要测端到端时间）；绝不预先承诺某种实现一定更快。
 
@@ -299,9 +439,10 @@ Python 3.10+ 可使用 `zip(..., strict=True)` 检查长度不一致；确实需
 本项目的基本算法需要 **Python 3.10+**。请在仓库根目录执行：
 
 ```bash
-# 运行两个算法示例
+# 运行三个算法示例
 python algorithms/sorting/bubble_sort.py
 python -m algorithms.arithmetic.karatsuba
+python -m algorithms.graph.floyd_warshall
 
 # 安装测试依赖，并执行所有基础测试
 python -m pip install -r requirements-dev.txt
@@ -310,12 +451,15 @@ python -m pytest -q
 # Karatsuba 性能实验（标准库）
 python -m benchmarks.karatsuba_vs_builtin --bits 1024 --number 20 --repeat 5
 
+# Floyd–Warshall 基准实验（标准库）
+python -m benchmarks.floyd_warshall_vs_bellman_ford --vertices 16 --density 0.6 --number 2 --repeat 3
+
 # 可选 Numba 实验
 python -m pip install numpy numba
 python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 ```
 
-**自动化测试包括：** [冒泡排序](tests/test_bubble_sort.py)、[Karatsuba 乘法](tests/test_karatsuba.py)、[Karatsuba 基准接口](tests/test_karatsuba_benchmark.py)、[Markdown Python 示例](tests/test_documentation_examples.py)、[首页知识覆盖检查](tests/test_readme_coverage.py) 和 [内部链接](tests/test_markdown_links.py)，以及可选的 [Numba 实验测试](tests/test_numba_benchmark.py)。GitHub Actions 在 Python 3.10 / 3.12 / 3.13 下检查基础实现。
+**自动化测试包括：** [冒泡排序](tests/test_bubble_sort.py)、[Karatsuba 乘法](tests/test_karatsuba.py)、[Karatsuba 基准接口](tests/test_karatsuba_benchmark.py)、[Floyd–Warshall 最短路与路径重建](tests/test_floyd_warshall.py)、[Floyd–Warshall 基准接口](tests/test_floyd_warshall_benchmark.py)、[Markdown Python 示例](tests/test_documentation_examples.py)、[首页知识覆盖检查](tests/test_readme_coverage.py) 和 [内部链接](tests/test_markdown_links.py)，以及可选的 [Numba 实验测试](tests/test_numba_benchmark.py)。GitHub Actions 在 Python 3.10 / 3.12 / 3.13 下检查基础实现。
 
 ### 后续新增算法必须怎样记录？
 
@@ -331,6 +475,7 @@ python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 Runoria/
 ├── algorithms/
 │   ├── arithmetic/         # Karatsuba 等整数算法与原理
+│   ├── graph/              # Floyd–Warshall 等图论算法
 │   └── sorting/            # 冒泡排序等排序算法
 ├── python/
 │   └── idioms/             # Python 惯用写法与语言细节
