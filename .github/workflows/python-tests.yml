@@ -36,6 +36,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install optional benchmark dependencies
-        run: python -m pip install numpy numba
+        run: python -m pip install -r requirements-dev.txt numpy numba
       - name: Verify Numba benchmark execution and output correctness
-        run: python benchmarks/bubble_sort_numba.py --size 200 --repeat 3
+        run: |
+          python -m pytest -q tests/test_numba_benchmark.py
+          python -m benchmarks.bubble_sort_numba --size 200 --repeat 3
