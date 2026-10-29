@@ -37,6 +37,16 @@ jobs:
         run: python -m algorithms.graph.floyd_warshall
       - name: Verify Floyd-Warshall reference benchmark command line
         run: python -m benchmarks.floyd_warshall_vs_bellman_ford --vertices 6 --density 0.5 --number 1 --repeat 2
+      - name: Verify Heap Sort command line
+        run: python -m algorithms.sorting.heap_sort
+      - name: Verify Binary Search command line
+        run: python -m algorithms.search.binary_search
+      - name: Verify Trie command line
+        run: python -m algorithms.strings.trie
+      - name: Verify Knapsack DP command line
+        run: python -m algorithms.dynamic_programming.knapsack_01
+      - name: Verify Dijkstra command line
+        run: python -m algorithms.graph.dijkstra
 
   numba-smoke:
     runs-on: ubuntu-latest
