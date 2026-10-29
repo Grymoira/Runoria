@@ -13,6 +13,7 @@ Runoria 是一个以 Python 为起点的计算机科学个人知识库，记录�
 | --- | --- | --- |
 | 冒泡排序（Bubble Sort） | [原理、过程、稳定性及复杂度](#冒泡排序bubble-sort) | [算法实现](algorithms/sorting/bubble_sort.py) · [深入笔记](algorithms/sorting/README.md) |
 | 卡拉楚巴算法（Karatsuba） | [三次乘法、分治推导与大整数](#卡拉楚巴算法karatsuba-multiplication) | [算法实现](algorithms/arithmetic/karatsuba.py) · [深入笔记](algorithms/arithmetic/README.md) |
+| 斯特拉森算法（Strassen） | [七次矩阵乘法与分治推导](#斯特拉森算法strassen-matrix-multiplication) | [算法实现](algorithms/matrix/strassen.py) · [深入笔记](algorithms/matrix/README.md) |
 | 弗洛伊德–沃舍尔（Floyd–Warshall） | [动态规划、全源最短路、负权环和路径恢复](#弗洛伊德沃舍尔算法floydwarshall-algorithm) | [算法实现](algorithms/graph/floyd_warshall.py) · [深入笔记](algorithms/graph/README.md) |
 | Python 惯用写法 | [推导式、解包、比较、条件、any/all、enumerate/zip](#python-惯用写法与语言特性) | [笔记目录](python/idioms/) |
 | 性能实验 | [测量方法与误区](#性能实验) | [冒泡排序 / Numba](benchmarks/bubble_sort_numba.py) · [Karatsuba / 内置乘法](benchmarks/karatsuba_vs_builtin.py) |
@@ -191,6 +192,136 @@ $$
 - 适合学习大整数运算、分治与复杂度分析；日常业务优先使用内置 `x * y`。
 
 相关文件：[完整实现](algorithms/arithmetic/karatsuba.py) · [深入推导与边界说明](algorithms/arithmetic/README.md) · [正确性测试](tests/test_karatsuba.py) · [基准实验](benchmarks/karatsuba_vs_builtin.py)。
+
+### 斯特拉森算法（Strassen Matrix Multiplication）
+
+**解决什么问题？** 给定两个矩阵 $A$ 和 $B$，求它们的乘积 $C=AB$。对于普通的 $n\times n$ 方阵，三层循环计算每个元素的乘加组合，总时间通常是 $O(n^3)$。Strassen 算法采用**分治 + 代数重组**，把每一层原本需要的 8 次子矩阵乘法缩减到 **7 次**，以更多加减法换取更低的理论复杂度。
+
+#### 1. 核心推导：8 次乘法为什么能变为 7 次？
+
+把方阵分割成四块：
+
+$
+A=\begin{bmatrix}A_{11}&A_{12}\\A_{21}&A_{22}\end{bmatrix},
+\qquad
+B=\begin{bmatrix}B_{11}&B_{12}\\B_{21}&B_{22}\end{bmatrix}.
+$
+
+普通块乘法分别计算：
+
+$
+\begin{aligned}
+C_{11}&=A_{11}B_{11}+A_{12}B_{21},\\
+C_{12}&=A_{11}B_{12}+A_{12}B_{22},\\
+C_{21}&=A_{21}B_{11}+A_{22}B_{21},\\
+C_{22}&=A_{21}B_{12}+A_{22}B_{22}.
+\end{aligned}
+$
+
+共需 8 个子矩阵乘积。Strassen 构造 7 个新的乘积：
+
+$
+\begin{aligned}
+M_1&=(A_{11}+A_{22})(B_{11}+B_{22}),\\
+M_2&=(A_{21}+A_{22})B_{11},\\
+M_3&=A_{11}(B_{12}-B_{22}),\\
+M_4&=A_{22}(B_{21}-B_{11}),\\
+M_5&=(A_{11}+A_{12})B_{22},\\
+M_6&=(A_{21}-A_{11})(B_{11}+B_{12}),\\
+M_7&=(A_{12}-A_{22})(B_{21}+B_{22}).
+\end{aligned}
+$
+
+然后通过加减法组合四块结果：
+
+$
+\begin{aligned}
+C_{11}&=M_1+M_4-M_5+M_7,\\
+C_{12}&=M_3+M_5,\\
+C_{21}&=M_2+M_4,\\
+C_{22}&=M_1-M_2+M_3+M_6.
+\end{aligned}
+$
+
+这七个 $M_i$ 本身又可以继续使用同样的分治乘法。注意是**每层递归 7 次**，不是整个计算只乘 7 次。
+
+#### 2. 手算示例：两个 2×2 矩阵
+
+设
+
+$
+A=\begin{bmatrix}1&2\\3&4\end{bmatrix},
+\qquad B=\begin{bmatrix}5&6\\7&8\end{bmatrix}.
+$
+
+根据上面的公式，$M_1,\ldots,M_7$ 依次为：
+
+| 中间结果 | 计算 | 数值 |
+| --- | --- | --- |
+| $M_1$ | $(1+4)(5+8)$ | 65 |
+| $M_2$ | $(3+4)\times5$ | 35 |
+| $M_3$ | $1\times(6-8)$ | -2 |
+| $M_4$ | $4\times(7-5)$ | 8 |
+| $M_5$ | $(1+2)\times8$ | 24 |
+| $M_6$ | $(3-1)(5+6)$ | 22 |
+| $M_7$ | $(2-4)(7+8)$ | -30 |
+
+组合得：
+
+$
+C=\begin{bmatrix}
+65+8-24-30 & -2+24\\
+35+8 & 65-35-2+22
+\end{bmatrix}
+=\boxed{\begin{bmatrix}19&22\\43&50\end{bmatrix}}.
+$
+
+仓库中的代码可以直接复现；这里设置 `cutoff=1`，确保小矩阵也走七乘法的分治分支：
+
+```python
+from algorithms.matrix.strassen import strassen_multiply, naive_multiply
+
+a = [[1, 2], [3, 4]]
+b = [[5, 6], [7, 8]]
+result = strassen_multiply(a, b, cutoff=1)
+assert result == [[19, 22], [43, 50]]
+assert result == naive_multiply(a, b)
+```
+
+#### 3. 不是方阵或尺寸不是 2 的幂怎么办？
+
+本仓库支持 **$m\times k$ 乘以 $k\times n$ 的矩形矩阵**。实现会将两个矩阵补零到共同的、边长为 2 的幂的方阵，计算后裁剪到 $m\times n$；原始输入不会被修改。
+
+```python
+from algorithms.matrix.strassen import strassen_multiply
+
+left = [[1, 2, 3], [4, 5, 6]]      # 2 × 3
+right = [[7, 8], [9, 10], [11, 12]] # 3 × 2
+
+assert strassen_multiply(left, right, cutoff=1) == [
+    [58, 64],
+    [139, 154],
+]
+```
+
+这类填充能保证正确性，但对非常瘦长的矩阵可能导致大量无用运算和额外内存占用。空矩阵、参差不齐的行或无法相乘的维度会抛出 `ValueError`；非整数/浮点数元素会抛出 `TypeError`。
+
+#### 4. 复杂度、阈值与实际局限
+
+普通分治依靠 8 次子乘法，$T(n)=8T(n/2)+O(n^2)=O(n^3)$。Strassen 改为：
+
+$
+\boxed{T(n)=7T(n/2)+O(n^2)=\Theta(n^{\log_2 7})\approx\Theta(n^{2.807})}.
+$
+
+对于本实现，若补零后的方阵边长为 $p$，应以 $p$ 分析时间与额外空间。切分和中间矩阵会增加内存开销，辅助空间在常规递归分析下为 $O(p^2)$ 量级，递归深度约为 $O(\log p)$。
+
+- `strassen_multiply(left, right, cutoff=32)`：默认在边长不超过 32 时使用普通乘法结束递归，降低 Python 的函数调用开销。
+- `naive_multiply(left, right)`：普通三层循环，作为正确性与基准测试参照。
+- 对整数可精确比较结果；对浮点数，Strassen 的加减顺序不同，可能产生额外的数值舍入误差，应该用容差比较。
+- **理论更优不代表纯 Python 实际运行一定更快**。日常大规模数值计算优先考虑 NumPy/BLAS 等优化实现。
+
+相关阅读：[专题推导](algorithms/matrix/README.md) · [完整源码](algorithms/matrix/strassen.py) · [单元测试](tests/test_strassen.py) · [基准测试](benchmarks/strassen_vs_naive.py)。
 
 ### 弗洛伊德–沃舍尔算法（Floyd–Warshall Algorithm）
 
@@ -449,6 +580,7 @@ Python 3.10+ 可使用 `zip(..., strict=True)` 检查长度不一致；确实需
 | --- | --- | --- | --- |
 | [冒泡排序与 Numba](benchmarks/bubble_sort_numba.py) | 对比普通 Python 与 JIT 编译版本 | NumPy、Numba | 两边的容器类型不同：`list` vs `ndarray`；JIT 预热后再计时 |
 | [Karatsuba 与内置乘法](benchmarks/karatsuba_vs_builtin.py) | 对比纯 Python 分治乘法和内置 `*` | 仅标准库 | 固定随机输入、多轮计时、报告每次乘法时间中位数 |
+| [Strassen 与普通矩阵乘法](benchmarks/strassen_vs_naive.py) | 比较两种纯 Python 矩阵乘法 | 仅标准库 | 大量子矩阵的拆分与补零有额外成本，不保证加速 |
 | [Floyd–Warshall 与重复 Bellman–Ford](benchmarks/floyd_warshall_vs_bellman_ford.py) | 对比两种纯 Python 全源最短路 | 仅标准库 | 随机图可含负权边，但构造时保证无负权环 |
 
 关键原则：**正确性优先于性能**；多轮重复测量；避免把数据生成、JIT 编译、复制输入或结果验证的时间混进算法本身的耗时（除非实验明确要测端到端时间）；绝不预先承诺某种实现一定更快。
@@ -461,6 +593,7 @@ Python 3.10+ 可使用 `zip(..., strict=True)` 检查长度不一致；确实需
 # 运行三个算法示例
 python algorithms/sorting/bubble_sort.py
 python -m algorithms.arithmetic.karatsuba
+python -m algorithms.matrix.strassen
 python -m algorithms.graph.floyd_warshall
 
 # 安装测试依赖，并执行所有基础测试
@@ -470,6 +603,9 @@ python -m pytest -q
 # Karatsuba 性能实验（标准库）
 python -m benchmarks.karatsuba_vs_builtin --bits 1024 --number 20 --repeat 5
 
+# Strassen 性能实验（标准库）
+python -m benchmarks.strassen_vs_naive --size 32 --cutoff 8 --number 3 --repeat 3
+
 # Floyd–Warshall 基准实验（标准库）
 python -m benchmarks.floyd_warshall_vs_bellman_ford --vertices 16 --density 0.6 --number 2 --repeat 3
 
@@ -478,7 +614,7 @@ python -m pip install numpy numba
 python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 ```
 
-**自动化测试包括：** [冒泡排序](tests/test_bubble_sort.py)、[Karatsuba 乘法](tests/test_karatsuba.py)、[Karatsuba 基准接口](tests/test_karatsuba_benchmark.py)、[Floyd–Warshall 最短路与路径重建](tests/test_floyd_warshall.py)、[Floyd–Warshall 基准接口](tests/test_floyd_warshall_benchmark.py)、[Markdown Python 示例](tests/test_documentation_examples.py)、[首页知识覆盖检查](tests/test_readme_coverage.py) 和 [内部链接](tests/test_markdown_links.py)，以及可选的 [Numba 实验测试](tests/test_numba_benchmark.py)。GitHub Actions 在 Python 3.10 / 3.12 / 3.13 下检查基础实现。
+**自动化测试包括：** [冒泡排序](tests/test_bubble_sort.py)、[Karatsuba 乘法](tests/test_karatsuba.py)、[Karatsuba 基准接口](tests/test_karatsuba_benchmark.py)、[Strassen 矩阵乘法](tests/test_strassen.py)、[Strassen 基准接口](tests/test_strassen_benchmark.py)、[Floyd–Warshall 最短路与路径重建](tests/test_floyd_warshall.py)、[Floyd–Warshall 基准接口](tests/test_floyd_warshall_benchmark.py)、[Markdown Python 示例](tests/test_documentation_examples.py)、[首页知识覆盖检查](tests/test_readme_coverage.py) 和 [内部链接](tests/test_markdown_links.py)，以及可选的 [Numba 实验测试](tests/test_numba_benchmark.py)。GitHub Actions 在 Python 3.10 / 3.12 / 3.13 下检查基础实现。
 
 ### 后续新增算法必须怎样记录？
 
@@ -494,6 +630,7 @@ python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 Runoria/
 ├── algorithms/
 │   ├── arithmetic/         # Karatsuba 等整数算法与原理
+│   ├── matrix/             # Strassen 等矩阵运算
 │   ├── graph/              # Floyd–Warshall 等图论算法
 │   └── sorting/            # 冒泡排序等排序算法
 ├── python/
