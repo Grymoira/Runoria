@@ -51,15 +51,17 @@ assert pairs == [("Alice", 20), ("Bob", None)]
 ```python
 keys = ["name", "age"]
 values = ["Alice", 20]
-record = dict(zip(keys, values))
+record = dict(zip(keys, values, strict=True))
 assert record == {"name": "Alice", "age": 20}
 
 matrix = [[1, 2], [3, 4], [5, 6]]
-transposed = list(zip(*matrix))
+transposed = list(zip(*matrix, strict=True))
 assert transposed == [(1, 3, 5), (2, 4, 6)]
 ```
 
-矩阵转置示例假设每行长度一致；输出是由元组构成的列表。
+矩阵转置示例要求每行长度一致，使用 `strict=True` 避免不规则矩阵静默截断；输出是由元组构成的列表。
+
+遇到多个可迭代对象时，应先考虑不等长输入是错误、允许截断，还是需要填充，再选择 `zip(strict=True)`、普通 `zip()` 或 `zip_longest()`。
 
 ## 来源
 
