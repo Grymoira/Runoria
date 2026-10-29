@@ -14,7 +14,7 @@ Runoria 是一个以 Python 为起点的个人学习知识库，用于记录算�
 | Python idioms · 惯用写法 | [推导式](python/idioms/comprehensions.md)、[序列解包](python/idioms/unpacking.md)、[链式比较](python/idioms/chained_comparisons.md) | [python/idioms](python/idioms/) |
 | Python idioms · 惯用写法 | [enumerate / zip](python/idioms/enumerate_and_zip.md)、[any / all](python/idioms/any_and_all.md)、[条件表达式](python/idioms/conditional_expression.md) | [python/idioms](python/idioms/) |
 | Benchmarks · 性能实验 | [普通 Python 与 Numba 的冒泡排序对比](benchmarks/bubble_sort_numba.py) | [benchmarks](benchmarks/) |
-| Tests · 正确性验证 | [冒泡排序测试](tests/test_bubble_sort.py) | [tests](tests/) |
+| Tests · 正确性验证 | [冒泡排序](tests/test_bubble_sort.py)、[笔记代码示例](tests/test_documentation_examples.py)、[内部链接](tests/test_markdown_links.py) | [tests](tests/) |
 
 ## 目录结构
 
@@ -50,7 +50,7 @@ Numba 性能实验依赖 NumPy 和 Numba，单独安装（不作为学习笔记�
 
 ```bash
 python -m pip install numpy numba
-python benchmarks/bubble_sort_numba.py --size 1000 --repeat 5
+python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 ```
 
 性能结果依赖 Python、NumPy、Numba 版本与运行环境；示例仅用于学习测量方法，不代表普遍性能结论。
@@ -60,7 +60,8 @@ python benchmarks/bubble_sort_numba.py --size 1000 --repeat 5
 - 每个知识点尽量包含：**是什么 → 传统写法 → 推荐写法 → 为什么 → 版本/边界条件 → 来源**。
 - 算法应明确：输入输出、是否原地修改、时间与空间复杂度，以及可复现的测试。
 - 语言规范、CPython 实现细节和实际测量结果应分开表述。
-- 学习笔记允许包含对比用的局部代码片段；可独立运行的程序放在 `.py` 文件中。
+- `python/idioms/` 内的 `python` 代码块必须是可独立运行示例，CI 会验证；只表示语法形式的占位符使用 `text` 代码块。
+- 可独立运行的算法程序放在 `.py` 文件中，性能实验复用标准算法实现。
 - 详见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [笔记模板](docs/learning_template.md)。
 
 ## 许可
