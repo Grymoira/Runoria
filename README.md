@@ -66,4 +66,4 @@ python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 
 ## 许可
 
-本仓库沿用原有 [MIT License](LICENSE)。第三方内容应遵循各自许可并标明来源；原许可证中的版权署名未在此次整理中改动。
+本仓库当前版本采用 **[GNU Affero General Public License v3.0 only (AGPL-3.0-only)](LICENSE)** 发布；修改、分发及网络服务场景应遵守许可证条款。历史版本的 MIT 授权不会因新版本换证而失效，原有版权及许可声明记录在 [NOTICE.md](NOTICE.md) 与 [LICENSES/MIT-legacy.txt](LICENSES/MIT-legacy.txt)。引用第三方内容时必须遵守其实际授权条件。
