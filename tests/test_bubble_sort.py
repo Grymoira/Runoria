@@ -26,6 +26,24 @@ def test_matches_builtin_sorted(values: list[int]) -> None:
     assert result == sorted(original)
 
 
+def test_randomized_inputs_match_builtin_sorted() -> None:
+    """固定种子的多组随机输入，覆盖重复元素和正负数。"""
+    import random
+
+    rng = random.Random(20261029)
+    for length in range(35):
+        for _ in range(4):
+            original = [rng.randint(-20, 20) for _ in range(length)]
+            values = original.copy()
+            assert bubble_sort(values) is values
+            assert values == sorted(original)
+
+
+def test_unorderable_values_raise_type_error() -> None:
+    with pytest.raises(TypeError):
+        bubble_sort([object(), object()])
+
+
 @dataclass(frozen=True)
 class Item:
     key: int
