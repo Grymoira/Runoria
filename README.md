@@ -315,7 +315,7 @@ python -m pip install numpy numba
 python -m benchmarks.bubble_sort_numba --size 1000 --repeat 5
 ```
 
-**自动化测试包括：** [冒泡排序](tests/test_bubble_sort.py)、[Karatsuba 乘法](tests/test_karatsuba.py)、[Karatsuba 基准接口](tests/test_karatsuba_benchmark.py)、[Markdown Python 示例](tests/test_documentation_examples.py) 和 [内部链接](tests/test_markdown_links.py)，以及可选的 [Numba 实验测试](tests/test_numba_benchmark.py)。GitHub Actions 在 Python 3.10 / 3.12 / 3.13 下检查基础实现。
+**自动化测试包括：** [冒泡排序](tests/test_bubble_sort.py)、[Karatsuba 乘法](tests/test_karatsuba.py)、[Karatsuba 基准接口](tests/test_karatsuba_benchmark.py)、[Markdown Python 示例](tests/test_documentation_examples.py)、[首页知识覆盖检查](tests/test_readme_coverage.py) 和 [内部链接](tests/test_markdown_links.py)，以及可选的 [Numba 实验测试](tests/test_numba_benchmark.py)。GitHub Actions 在 Python 3.10 / 3.12 / 3.13 下检查基础实现。
 
 ### 后续新增算法必须怎样记录？
 
