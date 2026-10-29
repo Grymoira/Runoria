@@ -1,4 +1,4 @@
-"""逐个执行 python/idioms 中独立的 Python 示例。
+"""逐个独立执行根目录 README 与 python/idioms 的 Python 示例。
 
 只验证仓库维护者编写的本地 Markdown，不运行来自网络的任意内容。
 凡是不能独立执行的占位语法，应使用 text 代码围栏。
@@ -16,7 +16,8 @@ PYTHON_BLOCK = re.compile(r"^```python[ \t]*\n(.*?)^```[ \t]*$", re.MULTILINE | 
 
 def examples() -> list:
     cases = []
-    for document in sorted(DOCS.glob("*.md")):
+    # The homepage is a learning document, not only a navigation list.
+    for document in [ROOT / "README.md", *sorted(DOCS.glob("*.md"))]:
         blocks = PYTHON_BLOCK.findall(document.read_text(encoding="utf-8"))
         if not blocks:
             raise AssertionError(f"No runnable Python examples in {document}")
