@@ -176,3 +176,64 @@ def test_defensive_route_reconstruction() -> None:
         reconstruct_path([[0, 0], [1, 1]], 0, 1)
     with pytest.raises(ValueError, match="out of range"):
         reconstruct_path([[0, 5], [None, 1]], 0, 1)
+
+
+def test_legacy_note_start_equals_end_and_disconnected_semantics() -> None:
+    """The old next-node table omitted diagonal entries and returned [] for both cases."""
+    graph = [[0, math.inf], [math.inf, 0]]
+    distances, routing = floyd_warshall(graph)
+    assert distances == graph
+    assert reconstruct_path(routing, 0, 0) == [0]
+    assert reconstruct_path(routing, 1, 1) == [1]
+    assert reconstruct_path(routing, 0, 1) is None
+
+
+def test_zero_weight_edge_is_a_real_route_not_an_absent_edge() -> None:
+    graph = [[0, 0, math.inf], [0, 0, 2], [math.inf, math.inf, 0]]
+    distances, routing = floyd_warshall(graph)
+    assert distances[0][1] == 0
+    assert distances[0][2] == 2
+    assert reconstruct_path(routing, 0, 2) == [0, 1, 2]
+    assert reconstruct_path(routing, 2, 0) is None
+
+
+def test_regression_legacy_negative_cycle_can_corrupt_next_hops() -> None:
+    """The original notebook lacked negative-cycle checks and could loop on 0->2.
+
+    This graph's negative cycle includes 0->1->0; the old implementation
+    produced a next-node route for 0->2 alternating 0,1,0,1,... forever.
+    """
+    graph = [
+        [0, 2, -2],
+        [-3, 0, -2],
+        [-1, math.inf, 0],
+    ]
+    with pytest.raises(ValueError, match="negative-weight cycle"):
+        floyd_warshall(graph)
+
+
+@pytest.mark.parametrize("sign", [1.0, -1.0])
+def test_finite_float_weights_that_overflow_on_addition_are_rejected(
+    sign: float,
+) -> None:
+    graph = [
+        [0, sign * 1e308, math.inf],
+        [math.inf, 0, sign * 1e308],
+        [math.inf, math.inf, 0],
+    ]
+    with pytest.raises(OverflowError, match="floating-point path weight overflow"):
+        floyd_warshall(graph)
+
+
+def test_finite_float_weights_without_overflow_are_supported() -> None:
+    graph = [[0, 0.25, 1.5], [math.inf, 0, 0.5], [math.inf, math.inf, 0]]
+    distances, routing = floyd_warshall(graph)
+    assert distances[0][2] == 0.75
+    assert reconstruct_path(routing, 0, 2) == [0, 1, 2]
+
+
+def test_input_validation_nonmatrix_types() -> None:
+    with pytest.raises(TypeError, match="square"):
+        floyd_warshall("not a matrix")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="square"):
+        floyd_warshall([[0], (1, 0)])
