@@ -9,6 +9,7 @@ squares = []
 for i in range(10):
     if i % 2 == 0:
         squares.append(i ** 2)
+assert squares == [0, 4, 16, 36, 64]
 ```
 
 等价的推导式：
@@ -49,6 +50,8 @@ def classify(number: int) -> str:
     return "small odd"
 
 labels = [classify(x) for x in range(10)]
+assert labels[0] == "even"
+assert labels[7] == "large odd"
 ```
 
 ## 4. 字典、集合与生成器
@@ -71,6 +74,17 @@ assert next(lazy_squares) == 0
 - Python 3 中，推导式的迭代变量不会泄漏到外围作用域；普通 `for` 循环变量在相同作用域中仍然可见。
 - CPython 3.12 开始采用 [PEP 709](https://peps.python.org/pep-0709/) 的内联优化，不能将所有版本的字节码、函数调用或临时对象行为一概而论。
 - 包含难以理解的多重循环或副作用时，普通循环往往更适合。笛卡尔积可考虑 `itertools.product`。
+
+## 6. 多维组合
+
+对于笛卡尔积，优先考虑标准库 `itertools.product`：
+
+```python
+from itertools import product
+
+pairs = list(product([1, 2], ["a", "b"]))
+assert pairs == [(1, "a"), (1, "b"), (2, "a"), (2, "b")]
+```
 
 ## 来源
 
